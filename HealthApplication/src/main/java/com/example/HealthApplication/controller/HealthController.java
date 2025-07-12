@@ -1,81 +1,56 @@
 package com.example.HealthApplication.controller;
 
+import com.example.HealthApplication.dto.DoctorRequestDTO;
+import com.example.HealthApplication.dto.DoctorResponseDTO;
+import com.example.HealthApplication.dto.PatientRequestDTO;
 import com.example.HealthApplication.entity.Doctor;
 import com.example.HealthApplication.entity.Patient;
-import com.example.HealthApplication.exception.DoctorNotFoundException;
-import com.example.HealthApplication.repository.DoctorRepository;
-import com.example.HealthApplication.repository.PatientRepository;
+import com.example.HealthApplication.service.DoctorService;
+import com.example.HealthApplication.service.PatientService;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/doctors")
 public class HealthController {
 
-    private static final Logger log = LoggerFactory.getLogger(HealthController.class);
     @Autowired
-    private DoctorRepository docRepo;
+    private DoctorService doctorService;
 
-    //get
+    @Autowired
+    private PatientService patientService;
+
     @GetMapping
-    public List<Doctor> getAllDoctors() {
-        log.info("Fetching all doctors");
-        return docRepo.findAll();
+    public List<DoctorResponseDTO> getAllDoctors() {
+        return doctorService.getAllDoctors().getBody();
     }
 
-    //get by id
     @GetMapping("/{id}")
-    public Doctor getDoctorById(@PathVariable Integer id) {
-        log.info("Fetching doctor by ID:" , id);
-        return docRepo.findById(id).orElseThrow(()-> new DoctorNotFoundException("Doctor not found by ID:" + id));
+    public DoctorResponseDTO getDoctorById(@PathVariable Integer id) {
+        return doctorService.getDoctorById(id).getBody();
     }
 
-    //post-create or add
     @PostMapping
-    public Doctor addDoctor(@RequestBody Doctor doctor) {
-        log.info("Creating a new Doctor");
-
-        if(doctor.getPatients() != null) {
-            for(Patient p : doctor.getPatients()) {
-                p.setDoctor(doctor);
-            }
-        }
-
-        return docRepo.save(doctor);
+    public DoctorResponseDTO addDoctor(@RequestBody DoctorRequestDTO doctor) {
+        return doctorService.addDoctor(doctor).getBody();
     }
 
-    //put-update
     @PutMapping("/{id}")
-    public Doctor updateDoctor(@PathVariable Integer id , @RequestBody Doctor updatedDoctor) {
-        log.info("Updating doctor");
-        updatedDoctor.setId(id);
-        return docRepo.save(updatedDoctor);
+    public DoctorResponseDTO updateDoctor(@PathVariable Integer id, @RequestBody DoctorRequestDTO updatedDoctor) {
+        return doctorService.updateDoctor(id, updatedDoctor).getBody();
     }
+
     @DeleteMapping("/{id}")
     public String deleteDoctor(@PathVariable Integer id) {
-        log.info("Deleting doctor");
-        Doctor doctor = docRepo.findById(id).orElseThrow(() -> new DoctorNotFoundException("Doctor not found with id:" + id));
-        docRepo.delete(doctor);
-        return "Doctor deleted";
+        return doctorService.deleteDoctor(id).getBody();
     }
 
-    //to add patients
-    @Autowired
-    private PatientRepository patientRepo;
     @PostMapping("/{docId}/patients")
-    public Doctor addPatientToDoctor(@PathVariable Integer docId , @RequestBody Patient patient) {
-        Doctor doctor = docRepo.findById(docId).orElseThrow(()-> new DoctorNotFoundException("Doctor not found"));
-        //set doc to pat
-        patient.setDoctor(doctor);
-        patientRepo.save(patient);
-        //add patient to doc list
-        doctor.getPatients().add(patient);
-        return docRepo.save(doctor);
+    public DoctorResponseDTO addPatientToDoctor(@PathVariable Integer docId, @RequestBody PatientRequestDTO patient) {
+        return doctorService.addPatientToDoctor(docId, patient).getBody();
     }
-
 }
